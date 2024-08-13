@@ -11,6 +11,7 @@
 #include "exec/address-spaces.h"
 #include "esp32_wlan_packet.h"
 #include "hw/qdev-properties.h"
+#include "hw/misc/esp32c3_reg.h"
 
 #define DEBUG 0
 
@@ -22,19 +23,31 @@ static uint64_t esp32C3_wifi_read(void *opaque, hwaddr addr, unsigned int size)
     
     switch(addr) {
         case A_C3_WIFI_DMA_IN_STATUS:
+            if (DEBUG) printf("A_C3_WIFI_DMA_IN_STATUS: ");
+            printf("A_C3_WIFI_DMA_IN_STATUS:Read:0x%08lx:0x%08lx:0\n", DR_REG_WIFI_BASE + addr, r);
             r=0;
             break;
         case A_C3_WIFI_DMA_INT_STATUS:
+            if (DEBUG) printf("A_C3_WIFI_DMA_INT_STATUS: ");
+            printf("A_C3_WIFI_DMA_INT_STATUS:Read:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, r);
         case A_C3_WIFI_DMA_INT_CLR:
+            if (DEBUG) printf("A_C3_WIFI_DMA_INT_CLR: ");
+            printf("A_C3_WIFI_DMA_INT_CLR:Read:0x%08lx:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, r, s->raw_interrupt);
             r=s->raw_interrupt;
             break;
         case A_C3_WIFI_STATUS:
+            if (DEBUG) printf("A_C3_WIFI_STATUS:");
+            printf("A_C3_WIFI_STATUS:Read:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, r);
         case A_C3_WIFI_DMA_OUT_STATUS:
+            if (DEBUG) printf("A_C3_WIFI_DMA_OUT_STATUS: ");
+            printf("A_C3_WIFI_DMA_OUT_STATUS:Read:0x%08lx:0x%08lx:1\n", DR_REG_WIFI_BASE + addr, r);
             r=1;
-            break;           
+            break;     
+        default:
+            printf("UKNOWN:Read:0x%08lx:0x%08lx:1\n", DR_REG_WIFI_BASE + addr, r);
     }
 
-    if(DEBUG) printf("esp32C3_wifi_read  0x%04lx= 0x%08x\n",(unsigned long) addr,r);
+    if (DEBUG) printf("esp32C3_wifi_read  0x%04lx= 0x%08x\n",(unsigned long) addr,r);
 
     return r;
 }
@@ -55,14 +68,21 @@ static void esp32C3_wifi_write(void *opaque, hwaddr addr, uint64_t value,
 
     switch (addr) {
         case A_C3_WIFI_DMA_INLINK:
+            if (DEBUG) printf("A_C3_WIFI_DMA_INLINK: ");
             s->dma_inlink_address = value;
+            printf("A_C3_WIFI_DMA_INLINK:Write:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, value);
             break;
         case A_C3_WIFI_DMA_INT_CLR:
+            if (DEBUG) printf("A_C3_WIFI_DMA_INT_CLR: ");
+            printf("A_C3_WIFI_DMA_INT_CLR:Write:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, value);
             s->raw_interrupt &= ~value;
             if(s->raw_interrupt == 0)
                 qemu_set_irq(s->irq, 0);
             break;
         case A_C3_WIFI_DMA_OUTLINK:
+            if (DEBUG) printf("A_C3_WIFI_DMA_OUTLINK: ");
+            printf("A_C3_WIFI_DMA_OUTLINK:Write:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, value);
+
             if (value & 0xc0000000) {                        
                 // do a DMA transfer to the hardware from esp32 memory
                 mac80211_frame frame;
@@ -76,7 +96,22 @@ static void esp32C3_wifi_write(void *opaque, hwaddr addr, uint64_t value,
                 frame.frame_length=item.length;
                 frame.next_frame=0;
                 Esp32_WLAN_handle_frame(s, &frame);
+                printf("DMA List item: \n");
+                printf("size: %d\n", item.size);
+                printf("length: %d\n", item.length);
+                printf("Something: 6\n");
+                printf("eof: %d\n", item.eof);
+                printf("owner: %d\n", item.owner);
+                printf("address: %04x\n", item.address);
+                printf("next: %d\n", item.next);
+                printf("Frame: ");
+                for(int ii = 0; ii < item.length; ii++){
+                    printf("0x%02x ", *((uint8_t *)&frame + ii));
+                }
+                printf("\n");
             }
+        default:
+            printf("UNKNOWN:Write:0x%08lx:0x%08lx\n", DR_REG_WIFI_BASE + addr, value);
     }
     s->mem[addr/4]=value;
 }
