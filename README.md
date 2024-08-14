@@ -1,3 +1,6 @@
+# QEMU for reverse engineering the WiFi drivers of ESP32C3
+Slightly modified QEMU version with AP support and peripheral access logging. Small modifications have been made to meson build script for compilation on latest Arch Linux (revert if necessary).
+
 # QEMU for use with PICSimLab
 
 This fork contains a modified version of the [Espressif QEMU](https://github.com/espressif/qemu) used by the [PICSimLab](https://github.com/lcgamboa/picsimlab) simulator. This version has been altered to compile QEMU as a dynamic library using the [build_libqemu-esp32.sh](https://github.com/lcgamboa/qemu/blob/picsimlab-esp32/build_libqemu-esp32.sh) script.
